@@ -1,0 +1,23 @@
+server-
+>>>import socket
+>>>TCPSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) - create socket
+>>>TCPSocket.bind(("0.0.0.0", 9000)) - bind socket
+>>>TCPSocket.listen() - listen connection
+>>>(ClientSocket, (ip, port))=TCPSocket.accept()
+
+Client-
+sudo apt install telnet
+telnet 192.168.80.138 9000
+
+Server-
+>>> print(ip)
+	192.168.80.132
+>>> print(port)
+	36964
+>>>ClientSocket.send(b"\nHello CLient\n") - send msg to client
+>>>data = ClientSocket.recv(2048) - recv msg from client
+>>>print(data)
+>>>ClientSocket.close()
+>>>TCPSocket.close()
+
+
